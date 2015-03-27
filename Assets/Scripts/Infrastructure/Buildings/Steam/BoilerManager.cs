@@ -54,7 +54,7 @@ public class BoilerManager : SteamObject {
 				hasWater = true;
 			}
 			
-			if (coalAmount > 0 & hasWater){
+			if (coalAmount > 0 && hasWater){
 				pressure = 1000;
 			}
 		}

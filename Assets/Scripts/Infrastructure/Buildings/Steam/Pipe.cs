@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using KofTools;
 
 public class Pipe : SteamObject {
@@ -10,6 +11,7 @@ public class Pipe : SteamObject {
 	Metal material;
 	public int type;
 	public int lastType;
+	public string prefabType;
 	
 	public float pipelength;
 	public float offSet; //How far to move to the right
@@ -17,22 +19,25 @@ public class Pipe : SteamObject {
 	
 		
 	public bool northOpen, southOpen, eastOpen, westOpen, topOpen, bottomOpen;
-	
+
+	Dictionary<string, Pipe> closestOnAxis = new Dictionary<string, Pipe>();
+
 	public void starterate(Metal mat){
+
+
+		material = mat;
+		updateParent();
+		reEnqueue();
+
+	}
+
+	public void updateParent(){
 		if (PipeParent == null){
 			PipeParent = new GameObject("Pipe Parent");
 		}
-
-		material = mat;
-		/*calculateAdjacentSteams();
-		calculatePressure();
-		calculateWater();
-		updatePos();
-		checkSurroundings();*/
-		base.updatePos();
-		reEnqueue();
-
-		this.transform.parent = PipeParent.transform;
+		if (this.transform.parent != PipeParent.transform){
+			this.transform.parent = PipeParent.transform;
+		}
 	}
 	
 	public void reEnqueue(){
@@ -65,7 +70,7 @@ public class Pipe : SteamObject {
 		}
 	}
 	
-	public void checkSurroundings(){
+	public void checkSurroundings(){//figures out what type it is
 		/// Types http://i.imgur.com/pb2Uf.png
 		/// 0 = EoWc |-
 		/// 1 = WoEc -|
@@ -94,7 +99,11 @@ public class Pipe : SteamObject {
 		/// 24 = SU
 		/// 25 = EU
 		/// 26 = WU
-		
+
+		if (adjacentSteams == null){
+			calculateAdjacentSteams();
+		}
+
 		lastType = type;
 		
 		northOpen = false;
@@ -250,8 +259,7 @@ public class Pipe : SteamObject {
 		
 	}
 	
-	public void updateGraphics(){
-		disEnqueue();
+	public void updateGraphics(){//switches the graphics to a given type
 		if (type == 0){
 			switchTo("Prefabs/EndPipePrefab", new Vector3(-90f, 0f, 90f));
 		} else if (type == 1){
@@ -311,12 +319,21 @@ public class Pipe : SteamObject {
 		
 	}
 
-	void switchTo(string type, Vector3 rotation){
-		GameObject obj = GameObject.Instantiate<GameObject>(Resources.Load<GameObject>(type));
-		Pipe p = (Pipe)obj.transform.GetComponent<Pipe>();
-		transform.rotation = Quaternion.identity;
-		transform.Rotate(rotation);
-		transferData(p);
+	void switchTo(string ptype, Vector3 rotation){
+		if (ptype == prefabType){//you don't need to regenerate
+			transform.rotation = Quaternion.identity;
+			transform.Rotate(rotation);
+			updateParent();
+		} else {
+			disEnqueue();
+			GameObject obj = GameObject.Instantiate<GameObject>(Resources.Load<GameObject>(ptype));
+			Pipe p = (Pipe)obj.transform.GetComponent<Pipe>();
+			transform.rotation = Quaternion.identity;
+			transform.Rotate(rotation);
+			transferData(p);
+			p.prefabType = ptype;
+			p.updateParent();
+		}
 	}
 	
 	void transferData(Pipe p){
@@ -344,21 +361,30 @@ public class Pipe : SteamObject {
 			this.material = new Metal(Metal.MetalType.Aluminum);
 			starterate(this.material);
 		}
+		updateParent();
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		calculateAdjacentSteams();
+		checkSurroundings();
 		calculatePressure();
+	}
+
+	public void fullUpdate(){
+		calculateAdjacentSteams();
+		checkSurroundings();
+		calculatePressure();
+		calculateWater();
+		updatePos();
+		updateParent();
+
+		updateGraphics();
+
 	}
 	
 	public new void updatePos(){
 		
-		try {
-			scale();
-		} catch {
-			//Debug.Log("Poop");
-		}
+		scale();
 		
 		if (type == 7){
 			transform.position = new Vector3((float) x, (float) y, (float)z);
@@ -369,110 +395,134 @@ public class Pipe : SteamObject {
 	
 	public void scale(){
 		
-		float max = 0;
-		
+		this.GetComponent<Renderer>().enabled = true;
+
+		if (adjacentSteams == null || adjacentSteams.Count == 0){
+			return;
+		}
+
 		if (type == 6){
-			this.GetComponent<Renderer>().enabled = true;
-			foreach (SteamObject p in adjacentSteams){
-				if (p.GetType().ToString().Equals("Pipe")){
-					Pipe pi = (Pipe) p;
-					if (pi.type == 6){
-						if (p.z > z){
-							try {
-								pipelength = (1 * pi.pipelength) + 1;
-							} catch {
-								Debug.Log("SQUAWK");
-							}
-						} else {
-							//this.renderer.enabled = false;
-							if (pi.pipelength > max){
-								max = pi.pipelength;
-							}
-						}
-					}
-				}
-			}
-			
-			this.GetComponent<Renderer>().enabled = false;
-			
-			try {
-				//GameObject.Destroy(straightPipe);
-			} catch {
-				
-			}
-			
-			if (pipelength >= max){
-				offSet = ((pipelength - 0f)/1.2f) + 0.5f;
-				
-				if (straightPipe == null){
-					straightPipe = (GameObject) GameObject.Instantiate(Resources.Load("Prefabs/StraightPipeSectionPrefab"));
-				}
-					
-				straightPipe.transform.rotation = Quaternion.identity;
-				straightPipe.transform.Rotate(new Vector3(90f, 0f, 0f));
-				straightPipe.transform.position = new Vector3(x, y, z + offSet);
-				straightPipe.transform.localScale = new Vector3(1f, (0.14f * pipelength), 1f);
-				
-				
-				//Debug.Log("This: " + pipelength + " Max: " + max);
-				
-			} else {
-				if (straightPipe != null){
-					GameObject.Destroy(straightPipe);
-				}
-			}
+			scaleAlongAxis("z");
 		} else if (type == 7){
-			this.GetComponent<Renderer>().enabled = true;
-			foreach (SteamObject p in adjacentSteams){
-				if (p.GetType().ToString().Equals("Pipe")){
-					Pipe pi = (Pipe) p;
-					if (pi.type == 7){
-						if (p.x > x){
-							try {
-								pipelength = (1 * pi.pipelength) + 1;
-							} catch {
-								Debug.Log("SQUAWK");
-							}
-						} else {
-							//this.renderer.enabled = false;
-							if (pi.pipelength > max){
-								max = pi.pipelength;
-							}
-						}
-					}
-				}
-			}
-			
-			this.GetComponent<Renderer>().enabled = false;
-			
-			try {
-				//GameObject.Destroy(straightPipe);
-			} catch {
-				
-			}
-			
-			if (pipelength >= max){
-				offSet = ((pipelength - 0f)/1.2f) + 0.75f;
-				
-				if (straightPipe == null){
-					straightPipe = (GameObject) GameObject.Instantiate(Resources.Load("Prefabs/StraightPipeSectionPrefab"));
-				}
-					
-				straightPipe.transform.rotation = Quaternion.identity;
-				straightPipe.transform.Rotate(new Vector3(90, 90, 0));
-				straightPipe.transform.position = new Vector3(x + offSet, y, z);
-				straightPipe.transform.localScale = new Vector3(1f, (0.14f * pipelength), 1f);
-				
-				
-				//Debug.Log("This: " + pipelength + " Max: " + max);
-				
-			} else {
-				if (straightPipe != null){
-					GameObject.Destroy(straightPipe);
-				}
-			}
-			
+			scaleAlongAxis("x");
+		}
+
+	}
+
+	void scaleAlongAxis(string axis){
+		Pipe[] nearby = findClosest(axis);
+		Dictionary<string, Vector3> properRotations = new Dictionary<string, Vector3>(){
+			{"x", new Vector3(90, 90, 0)},
+			{"y", new Vector3(90, 90, 0)},
+			{"z", new Vector3(90, 0, 0)}
+		};
+		
+		if (nearby[0] != null){//it's got something to the right -- calculate pipelength accordingly
+			float d = axis == "x" ? x : axis == "y" ? y : axis == "z" ? z : 0f;;
+			float closestD = axis == "x" ? nearby[0].x : axis == "y" ? nearby[0].y : axis == "z" ? nearby[0].z : 0f;
+			pipelength = nearby[0].pipelength + (closestD - d);
 		}
 		
+		if (nearby[0] == null && nearby[1] == null){//no neighbors on this axis -- leave in in normal form
+			if (straightPipe == null){
+				GameObject.Destroy(straightPipe);
+			}
+		} else if (nearby[1] == null){//nothing to the left, something to the right, so it's the parent of the pipe
+			offSet = (pipelength) / 2f;
+			float nx = x + ((axis == "x" ? 1 : 0) * offSet);
+			float ny = y + ((axis == "y" ? 1 : 0) * offSet);
+			float nz = z + ((axis == "z" ? 1 : 0) * offSet);
+			
+			doScale(new Vector3(nx, ny, nz), properRotations[axis]);
+		} else {//neighbor on the left
+			this.GetComponent<Renderer>().enabled = false;
+			if (straightPipe == null){
+				GameObject.Destroy(straightPipe);
+			}
+		}
+	}
+
+	Pipe[] findClosest(string axis){
+		Pipe closest = null;
+		Pipe furthest = null;
+
+		float furthestPossibleNeighbor = 2f;
+		float d = axis == "x" ? x : axis == "y" ? y : axis == "z" ? z : 0f;
+		
+		foreach (SteamObject p in adjacentSteams){
+			if (p.GetType().ToString().Equals("Pipe")){
+				Pipe pi = (Pipe) p;
+
+				if (pi.type == this.type){
+					float piD = axis == "x" ? pi.x : axis == "y" ? pi.y : axis == "z" ? pi.z : 0f;
+					float cD = closest == null ? 0f : axis == "x" ? closest.x : axis == "y" ? closest.y : axis == "z" ? closest.z : 0f;
+					float fD = furthest == null ? 0f : axis == "x" ? furthest.x : axis == "y" ? furthest.y : axis == "z" ? furthest.z : 0f;
+					
+					if (piD > d && (piD - d) <= furthestPossibleNeighbor && (closest == null || piD < cD)){//it's to the right of you, and closer than anything else you've found
+						closest = pi;
+					}
+
+					if (piD < d && (d - piD) <= furthestPossibleNeighbor && (furthest == null || piD > fD)){//it's to the right of you, and closer than anything else you've found
+						furthest = pi;
+					}
+				}
+			}
+		}
+
+		//closestOnAxis[axis] = closest;
+		return new Pipe[]{closest, furthest};
+	}
+
+	void doScale(Vector3 newPos, Vector3 newRot){
+
+		if (prefabType == "Prefabs/StraightPipePrefab"){
+			this.GetComponent<Renderer>().enabled = false;
+		}
+					
+		if (straightPipe == null){
+			straightPipe = (GameObject) GameObject.Instantiate(Resources.Load("Prefabs/StraightPipeSectionPrefab"));
+		}
+		
+		straightPipe.transform.rotation = Quaternion.identity;
+		straightPipe.transform.Rotate(newRot);
+		straightPipe.transform.position = newPos;
+
+		float normalizedPipeLength = 0.0625f;//when y scale is this, the pipe section is exactly one unit long
+		straightPipe.transform.localScale = new Vector3(1f, (normalizedPipeLength * (pipelength + 2f)), 1f);
+	}
+
+	void destroyStraightPipeAlongAxis(string axis){
+		if (straightPipe != null){
+			GameObject.Destroy(straightPipe);
+
+		}
+	}
+
+	public static int pipesPerFrame = 10;
+	static int pipeIndex;//how far through the cycle of pipes you are
+
+	public static void OnStart(){
+		
+	}
+	
+	public static void EachFrame(){
+		//update the number of pipes we need -- never more than the number of pipes that exist
+		for (int i = 0; i < Mathf.Min(pipesPerFrame, ConstructionController.pipes.Count); i++){
+			updateNextPipe();
+		}
+	}
+
+	public static void updateNextPipe(){
+		if (pipeIndex >= ConstructionController.pipes.Count){
+			pipeIndex = 0;
+		}
+		ConstructionController.pipes[pipeIndex].fullUpdate();
+		pipeIndex ++;
+	}
+
+	public static void updateAll(){
+		foreach (Pipe p in ConstructionController.pipes){
+			p.fullUpdate();
+		}
 	}
 }

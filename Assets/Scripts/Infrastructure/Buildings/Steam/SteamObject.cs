@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace KofTools{
 	public class SteamObject : MonoBehaviour {
@@ -10,7 +11,7 @@ namespace KofTools{
 		public int x, y, z;
 		public bool activated;
 		
-		protected ArrayList adjacentSteams;
+		protected List<SteamObject> adjacentSteams;
 		
 		public void calculatePressure(){
 			pressure = 0;
@@ -22,32 +23,22 @@ namespace KofTools{
 		}
 		
 		public void calculateAdjacentSteams(){
-			adjacentSteams = new ArrayList();
+			adjacentSteams = new List<SteamObject>();
 			
 			Collider[] cols = Physics.OverlapSphere(transform.position, 2.0f);
 			foreach (Collider c in cols){
-				
-				try {
-					string str = c.gameObject.ToString();
-					if (str.Equals("StraightPipePrefab (UnityEngine.GameObject)") 
-						| str.Equals("StraightPipePrefab(Clone) (UnityEngine.GameObject)")
-						| str.Equals("StraightPipePrefab(Clone) (UnityEngine.GameObject)")
-						| str.Equals("EndPipePrefab(Clone) (UnityEngine.GameObject)")
-						| str.Equals("TBendPipePrefab(Clone) (UnityEngine.GameObject)")
-						| str.Equals("LBendPipePrefab(Clone) (UnityEngine.GameObject)")){
-						SteamObject p = (SteamObject) c.gameObject.GetComponent("Pipe");
-						adjacentSteams.Add(p);
-					} else if (str.Equals("Boiler (UnityEngine.GameObject)") | str.Equals("Boiler(Clone) (UnityEngine.GameObject)")){
-						SteamObject p = (SteamObject) c.gameObject.GetComponent("BoilerManager");
-						adjacentSteams.Add(p);
-					} else if (str.Equals("RefuelingStopPrefab (UnityEngine.GameObject)") | str.Equals("RefuelingStopPrefab(Clone) (UnityEngine.GameObject)")){
-						SteamObject p = (SteamObject) c.gameObject.GetComponent("RefuelingStationManager");
-						adjacentSteams.Add(p);
-					} else {
-						//Debug.Log(c.gameObject.ToString());
-					}
-				} catch {
-					//Debug.Log(c.name.ToString());
+				//string str = c.gameObject.ToString();
+				if (c.gameObject.GetComponent<Pipe>() != null){
+					SteamObject p = (SteamObject) c.gameObject.GetComponent<Pipe>();
+					adjacentSteams.Add(p);
+				} else if (c.gameObject.GetComponent<BoilerManager>() != null){
+					SteamObject p = (SteamObject) c.gameObject.GetComponent<BoilerManager>();
+					adjacentSteams.Add(p);
+				} else if (c.gameObject.GetComponent<RefuelingStationManager>() != null){
+					//SteamObject p = (SteamObject) c.gameObject.GetComponent<RefuelingStationManager>();
+					//adjacentSteams.Add(p);
+				} else {
+					//Debug.Log(c.gameObject.ToString());
 				}
 			}
 			

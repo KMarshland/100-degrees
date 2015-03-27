@@ -62,7 +62,7 @@ namespace KofTools{
 				obj.transform.position = Position;
 				Ore r = (Ore)obj.GetComponent("Ore");
 
-				Debug.Log (mat.materialType.ToString());
+				//Debug.Log (mat.materialType.ToString());
 				r.starterate(mat);
 
 				SoundController.playEffect("EjectRock", false, Position);

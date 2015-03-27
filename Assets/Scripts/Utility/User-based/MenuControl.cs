@@ -454,10 +454,10 @@ public class MenuControl : MonoBehaviour {
 				scrollOnClose = GUI.Toggle(new Rect((Screen.width / 2) - 50, 175, 100, 20), scrollOnClose, "Scrolling");
 				//robotsPrintPosition = GUI.Toggle(new Rect((Screen.width / 2) - 50, 200, 100, 20), robotsPrintPosition, "Position");
 				
-				CommandLineControl.pipesPerSecond = (int)GUI.HorizontalSlider(new Rect((Screen.width / 2) - 50, 200, 200, 20), CommandLineControl.pipesPerSecond, ConstructionController.originalSize, 1.0f);
+				Pipe.pipesPerFrame = (int)GUI.HorizontalSlider(new Rect((Screen.width / 2) - 50, 200, 200, 20), Pipe.pipesPerFrame, 50, 1.0f);
 				GUI.Label(new Rect((Screen.width / 2) - 145, 195, 550, 25), "Pipe Checks");
-				CommandLineControl.pipeCheck = (int)GUI.HorizontalSlider(new Rect((Screen.width / 2) - 50, 225, 200, 20), CommandLineControl.pipeCheck, 1.0f, 100000.0f);
-				GUI.Label(new Rect((Screen.width / 2) - 145, 220, 550, 25), "Pipe Smoothing");
+				//CommandLineControl.pipeCheck = (int)GUI.HorizontalSlider(new Rect((Screen.width / 2) - 50, 225, 200, 20), CommandLineControl.pipeCheck, 1.0f, 100000.0f);
+				//GUI.Label(new Rect((Screen.width / 2) - 145, 220, 550, 25), "Pipe Smoothing");
 				
 				WeatherControl.rainOn = GUI.Toggle(new Rect((Screen.width / 2) - 50, 250, 100, 20), WeatherControl.rainOn, "Rain");
 				CommandLineControl.printingFPS = GUI.Toggle(new Rect((Screen.width / 2) - 50, 275, 100, 20), CommandLineControl.printingFPS, "FPS");

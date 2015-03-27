@@ -11,9 +11,7 @@ using KofTools;
 		
 		public static int counter;
 		public int cntr;
-		
-		public static int pipesPerSecond;
-		public static int pipeCheck;
+				
 		public int pipesPerFrame;
 		public int pipeCount;
 		
@@ -39,10 +37,6 @@ using KofTools;
 			showingLS = false;
 			counter = 0;
 			
-			ConstructionController.updatePipes();
-			pipesPerSecond = 50;
-			pipeCheck = 100000;
-			
 			printingFPS = true;
 			timeleft = updateInterval;
 			
@@ -62,34 +56,6 @@ using KofTools;
 			counter += 1;
 			cntr = counter;
 			pipeCount = ConstructionController.pipes.Count;
-			
-			//update pipes
-			if (counter % pipeCheck == 0){
-				foreach (Pipe p in ConstructionController.pipes){
-					try {
-						p.type = -2;
-						p.lastType = -2;
-					} catch {
-						command = "poop";
-					}
-				}
-			}
-			try {
-				if (ConstructionController.pipes.Count < pipesPerSecond){
-					pipesPerSecond = ConstructionController.pipes.Count;
-				} else if (pipesPerSecond < 1){
-					pipesPerSecond = 1;
-				}
-				
-			
-				pipesPerFrame = (int)(ConstructionController.pipes.Count / pipesPerSecond);
-			} catch {
-				pipesPerFrame = 0;
-			}
-			
-			for (int i = 0; i < pipesPerFrame; i++){
-				ConstructionController.updatenextPipe();
-			}
 			
 			// update liquids
 			/*www = Water.waters.Count;
@@ -225,7 +191,7 @@ using KofTools;
 					}
 				}
 			} else if (com.ToLower().Equals("update pipes all")){
-				ConstructionController.updatePipes();
+				//ConstructionController.updatePipes();
 			} else if (words[0].ToLower().Equals("change")){
 				if (words[1].ToLower().Equals("construction")){
 					if (words[2].ToLower().Equals("speed")){
